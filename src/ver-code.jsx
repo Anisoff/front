@@ -1,33 +1,109 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
-function Vercode  ()  {
-  const [password, setPassword] = useState('');
-  const [minutes, setMinutes] = useState(2);
-  const [seconds, setSeconds] = useState(0); // Start with 30 seconds
+const VerCode = () => {
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [minutes, setMinutes] = useState(5);
+  const [seconds, setSeconds] = useState(0);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
-  const resendOTP = () => {
-    setSeconds(0); // Reset to 30 seconds
-    setMinutes(2);
-    // Add your OTP resend logic here
-  };
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const { email, userId, purpose } = state || {};
 
   useEffect(() => {
     const interval = setInterval(() => {
       if (seconds > 0) {
-        setSeconds(seconds - 1);
-      }
-      if (seconds === 0) {
-        if (minutes === 0) {
-          clearInterval(interval);
-        } else {
-          setSeconds(59);
-          setMinutes(minutes - 1);
-        }
+        setSeconds(prev => prev - 1);
+      } else if (minutes > 0) {
+        setMinutes(prev => prev - 1);
+        setSeconds(59);
+      } else {
+        clearInterval(interval);
       }
     }, 1000);
-    
+
     return () => clearInterval(interval);
-  }, [seconds, minutes]);
+  }, [minutes, seconds]);
+
+  const handleOtpChange = (element, index) => {
+    if (isNaN(element.value)) return;
+
+    const newOtp = [...otp];
+    newOtp[index] = element.value;
+    setOtp(newOtp);
+
+    if (element.nextSibling && element.value) {
+      element.nextSibling.focus();
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    const otpCode = otp.join('');
+    if (otpCode.length !== 6) {
+      setError('Please enter a 6-digit code');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        userId,
+        otp: otpCode
+      };
+
+      const endpoint = purpose === 'account-activation' 
+        ? 'http://localhost:5000/api/auth/activate'
+        : 'http://localhost:5000/api/auth/verify-otp';
+
+      const response = await axios.post(endpoint, payload);
+
+      if (purpose === 'account-activation') {
+        navigate('/login', {
+          state: {
+            success: 'Account activated successfully! Please login.'
+          }
+        });
+      } else {
+        navigate('/changepass', {
+          state: {
+            email,
+            resetToken: response.data.resetToken
+          }
+        });
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Verification failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setResendLoading(true);
+    setError('');
+    try {
+      await axios.post('http://localhost:5000/api/auth/resend-otp', {
+        email,
+        userId
+      });
+      setMinutes(5);
+      setSeconds(0);
+      
+      setError('');
+      
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to resend OTP. Please try again.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   const formatTime = () => {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
@@ -35,55 +111,72 @@ function Vercode  ()  {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="w-[500px] bg-[#e9dfdf] rounded-2xl shadow-lg p-6">
-        <h2 className="text-lg font-bold mb-4">Enter the verification code</h2>
+      <div className="w-[400px] bg-[#e9dfdf] rounded-2xl shadow-lg p-6">
+        <h2 className="text-xl font-bold mb-4 text-center">
+          {purpose === 'account-activation' ? 'Activate Account' : 'Verify Identity'}
+        </h2>
+        
+        <p className="text-sm text-gray-600 mb-6 text-center">
+          We've sent a 6-digit verification code to <span className="font-medium">{state?.email || 'your email'}</span>
+        </p>
 
-        {/* Password Input with Timer */}
-        <div className="relative mb-4">
-          <label className="block text-sm font-medium text-gray-700">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2 mt-1 mb-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 transition duration-300 pr-16"
-          />
-          <div className="absolute right-3 top-9 text-sm text-gray-500 font-medium">
-            {formatTime()}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+            {error}
           </div>
-        </div>
+        )}
 
-        <div className="text-sm my-4">
-          Code not received?{' '}
-          <button 
-            onClick={resendOTP}
-            disabled={seconds > 0 || minutes > 0}
-            className={`text-rose-500 font-semibold hover:underline ${
-              (seconds > 0 || minutes > 0) ? 'opacity-50 cursor-not-allowed' : ''
+        <form onSubmit={handleSubmit}>
+          <div className="flex justify-center space-x-2 mb-6">
+            {[...Array(6)].map((_, index) => (
+              <input
+                key={index}
+                type="text"
+                maxLength="1"
+                value={otp[index]}
+                onChange={(e) => handleOtpChange(e.target, index)}
+                onFocus={(e) => e.target.select()}
+                className="w-11 h-12 text-center text-xl font-semibold border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            ))}
+          </div>
+
+          <div className="text-center mb-6">
+            <p className="text-sm text-gray-600 mb-2">Time remaining: {formatTime()}</p>
+            <button
+              type="button"
+              onClick={handleResendOTP}
+              disabled={resendLoading || (minutes > 0 || seconds > 0)}
+              className={`text-rose-500 text-sm font-semibold hover:underline ${
+                (minutes > 0 || seconds > 0) ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {resendLoading ? 'Sending...' : "Didn't receive a code? Resend"}
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full bg-rose-500 text-white py-2 rounded-md font-semibold hover:bg-rose-600 transition ${
+              loading ? 'opacity-70 cursor-not-allowed' : ''
             }`}
           >
-            Resend OTP
+            {loading ? 'Verifying...' : 'Verify Code'}
           </button>
-        </div>
+        </form>
 
-        <button className="w-full bg-rose-500 text-white py-2 rounded-md font-semibold hover:bg-rose-800 transition duration-300">
-          Continue
-        </button>
-
-        <div className="flex items-center my-4">
-          <hr className="flex-grow border-gray-400" />
-          <span className="mx-2 text-sm text-gray-500">or</span>
-          <hr className="flex-grow border-gray-400" />
-        </div>
-
-        <div className="mt-4 text-sm text-gray-600">
-          Maybe later?{' '}
-          <a href="/" className="text-rose-500 font-semibold hover:underline">
-            Back to home page
-          </a>
+        <div className="text-center text-sm mt-4">
+          <button
+            onClick={() => navigate('/login')}
+            className="text-rose-500 font-semibold hover:underline"
+          >
+            Back to login
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-export default Vercode;
+export default VerCode;

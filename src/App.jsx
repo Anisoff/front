@@ -1,46 +1,27 @@
-import { useState } from 'react';
-import axios from 'axios';
-import './App.css';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Navbar from './navbar';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './login';
+import EmailVer from './email-ver';
+import VerCode from './ver-code';
 import Signup from './signup';
-import Emailver from './email-ver';
-import Vercode from './ver-code';
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import Navbar from './navbar';
+import HelloWorld from './helloworld';
+import ChangePassword from './changepass';
+
 
 function App() {
-
-  const [quote, setQuote] = useState('');
-
-  const getQuote =  () => {
-    axios.get('https://jsonplaceholder.typicode.com/todos/1')
-      .then(res => {
-        console.log(res.data.title);
-        setQuote(res.data.title);
-
-      })
-      .catch(err => {
-        console.error('Error fetching the quote:', err);
-      });
-
-  }
   return (
     <Router>
       <Routes>
-      <Route path="/" element={
-      <>
-      <Navbar />
-      </>
-  } />
-  <Route path="/login" element={<Login />} />
-  <Route path="/signup" element={<Signup />} />
-  <Route path="/email-ver" element={<Emailver />} />
-  <Route path="/ver-code" element={<Vercode />} />
-</Routes>
-</Router>
+        <Route path="/" element={<Navbar />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/email-ver" element={<EmailVer />} />
+        <Route path="/ver-code" element={<VerCode />} />
+        <Route path="/helloworld" element={<HelloWorld />} />
+        <Route path="/changepass" element={<ChangePassword />} />
+      </Routes>
+    </Router>
   );
-};
+}
 
 export default App;

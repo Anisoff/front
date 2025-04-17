@@ -1,29 +1,103 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 
-const emailver = () => {
+const EmailVer = () => {
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  React.useEffect(() => {
+    if (location.state?.email) {
+      setEmail(location.state.email);
+    }
+  }, [location.state]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    if (!email) {
+      setError('Please enter your email');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const endpoint = location.state?.forgotPassword
+        ? 'http://localhost:5000/api/auth/forgot-password'
+        : 'http://localhost:5000/api/auth/resend-activation';
+
+      const response = await axios.post(endpoint, { email });
+      
+      navigate('/ver-code', { 
+        state: { 
+          email,
+          userId: response.data.userId,
+          purpose: location.state?.forgotPassword ? 'password-reset' : 'account-activation'
+        }
+      });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to verify email. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="w-[400px] bg-[#e9dfdf] rounded-2xl shadow-lg p-6">
-        <h2 className="text-xl font-bold mb-4">Verification</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">
+          {location.state?.forgotPassword ? 'Reset Password' : 'Email Verification'}
+        </h2>
 
-        <label className="block text-sm font-medium text-gray-700">Email</label>
-        <input
-          type="email"
-          className="w-full px-3 py-2 mt-1 mb-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 transition duration-300"
-        />
+        <p className="text-gray-600 mb-4 text-center text-sm">
+          {location.state?.forgotPassword 
+            ? 'Enter your email address to receive a verification code to reset your password.'
+            : 'Enter your email address to receive a verification code for account activation.'}
+        </p>
+        
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+            {error}
+          </div>
+        )}
 
-    
-        <button 
-          className="w-full bg-rose-500 text-white py-2 rounded-md font-semibold hover:bg-rose-800 transition duration-300"
-        >
-          <Link to="/ver-code">Continue</Link>
-        </button>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500"
+              placeholder="your@email.com"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full bg-rose-500 text-white py-2 rounded-md font-semibold hover:bg-rose-600 transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+          >
+            {loading ? 'Sending...' : 'Continue'}
+          </button>
+        </form>
+
+        <div className="text-center text-sm mt-4">
+          <button
+            onClick={() => navigate('/login')}
+            className="text-rose-500 font-semibold hover:underline"
+          >
+            Back to login
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
-export default emailver;
+export default EmailVer;
