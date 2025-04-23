@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import Google from './assets/google.png';
+import { authAPI } from './services/api';
 
 function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -37,7 +37,7 @@ function Login() {
     setLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', formData);
+      const response = await authAPI.login(formData);
       
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));

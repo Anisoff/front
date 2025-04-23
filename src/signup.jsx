@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import axios from 'axios';
 import googleIcon from "./assets/google.png";
 import facebookIcon from "./assets/facebook.webp";
+import { authAPI } from './services/api';
 
 const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -42,10 +42,7 @@ const SignUp = () => {
       const { confirmPassword, ...registrationData } = formData;
 
       // Register the user and trigger OTP
-      const response = await axios.post(
-        'http://localhost:5000/api/auth/register',
-        registrationData
-      );
+      const response = await authAPI.register(registrationData);
 
       // Redirect to OTP verification page
       navigate('/ver-code', {
@@ -61,19 +58,6 @@ const SignUp = () => {
       setLoading(false);
     }
   };
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">

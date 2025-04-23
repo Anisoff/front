@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import axios from 'axios';
+import { authAPI } from './services/api';
 
 const ChangePassword = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -52,9 +52,7 @@ const ChangePassword = () => {
     
     setLoading(true);
     try {
-      await axios.post(`http://localhost:5000/api/auth/reset-password/${resetToken}`, {
-        password: formData.password
-      });
+      await authAPI.resetPassword(resetToken, formData.password);
       
       navigate('/login', {
         state: { success: 'Password has been reset successfully. Please login with your new password.' }

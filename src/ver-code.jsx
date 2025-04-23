@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { authAPI } from './services/api';
 
 const VerCode = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -58,11 +58,13 @@ const VerCode = () => {
         otp: otpCode
       };
 
-      const endpoint = purpose === 'account-activation' 
-        ? 'http://localhost:5000/api/auth/activate'
-        : 'http://localhost:5000/api/auth/verify-otp';
-
-      const response = await axios.post(endpoint, payload);
+      let response;
+      
+      if (purpose === 'account-activation') {
+        response = await authAPI.activateAccount(payload);
+      } else {
+        response = await authAPI.verifyOTP(payload);
+      }
 
       if (purpose === 'account-activation') {
         navigate('/login', {
@@ -89,7 +91,7 @@ const VerCode = () => {
     setResendLoading(true);
     setError('');
     try {
-      await axios.post('http://localhost:5000/api/auth/resend-otp', {
+      await authAPI.resendOTP({
         email,
         userId
       });

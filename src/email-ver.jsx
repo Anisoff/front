@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import { authAPI } from './services/api';
 
 const EmailVer = () => {
   const [email, setEmail] = useState('');
@@ -26,11 +26,13 @@ const EmailVer = () => {
 
     setLoading(true);
     try {
-      const endpoint = location.state?.forgotPassword
-        ? 'http://localhost:5000/api/auth/forgot-password'
-        : 'http://localhost:5000/api/auth/resend-activation';
-
-      const response = await axios.post(endpoint, { email });
+      let response;
+      
+      if (location.state?.forgotPassword) {
+        response = await authAPI.forgotPassword(email);
+      } else {
+        response = await authAPI.resendActivation(email);
+      }
       
       navigate('/ver-code', { 
         state: { 
